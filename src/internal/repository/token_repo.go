@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -9,7 +10,9 @@ import (
 	"github.com/adiletelf/jwt-auth-go/internal/model"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type TokenRepoImpl struct {
@@ -32,6 +35,11 @@ func (tr *TokenRepoImpl) Generate(uuid uuid.UUID) (model.TokenDetails, error) {
 		return model.TokenDetails{}, err
 	}
 	refreshToken, err := generateRefreshToken(uuid, tr.cfg)
+	if err != nil {
+		return model.TokenDetails{}, err
+	}
+
+	_, err = tr.Save(uuid, refreshToken)
 	if err != nil {
 		return model.TokenDetails{}, err
 	}
@@ -76,4 +84,31 @@ func generateRefreshToken(uuid uuid.UUID, cfg *config.Config) (string, error) {
 
 	signedToken, err := token.SignedString([]byte(cfg.ApiSecret))
 	return signedToken, err
+}
+
+func (tr *TokenRepoImpl) Save(uid uuid.UUID, refreshToken string) (string, error) {
+	hashedToken, err := hashPassword(refreshToken)
+	if err != nil {
+		return "", err
+	}
+	user := model.User{
+		UUID: uid,
+		RefreshToken: hashedToken,
+	}
+	result, err := tr.collection.InsertOne(tr.ctx, user)
+	if err != nil {
+		return "", err
+	}
+
+	insertedId, ok := result.InsertedID.(primitive.Binary)
+	if !ok {
+		return "", fmt.Errorf("error while inserting: %v", user)
+	}
+
+	return string(insertedId.Data), nil
+}
+
+func hashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(hashedPassword), err
 }
