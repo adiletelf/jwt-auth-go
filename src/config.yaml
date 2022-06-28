@@ -1,1 +1,8 @@
 ListenAddress: ":8080"
+AccessTokenMinuteLifespan: "15"
+RefreshTokenHourLifespan: "24"
+ApiSecret: "answeris42"
+DB:
+  ConnectionString: "mongodb://localhost:27017"
+  Name: "test"
+  CollectionName: "users"

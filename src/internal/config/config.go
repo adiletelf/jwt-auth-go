@@ -5,7 +5,15 @@ import (
 )
 
 type Config struct {
-	ListenAddress string
+	ListenAddress             string
+	AccessTokenMinuteLifespan string
+	RefreshTokenHourLifespan  string
+	ApiSecret                 string
+	DB                        struct {
+		ConnectionString string
+		Name             string
+		CollectionName   string
+	}
 }
 
 var Cfg *Config
