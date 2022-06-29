@@ -36,10 +36,7 @@ func (h *Handler) Generate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"accessToken":  base64.StdEncoding.EncodeToString([]byte(tokenDetails.AccessToken)),
-		"refreshToken": base64.StdEncoding.EncodeToString([]byte(tokenDetails.RefreshToken)),
-	})
+	c.JSON(http.StatusOK, encodeTokenBase64(tokenDetails))
 }
 
 func parseUUID(c *gin.Context) (uuid.UUID, error) {
@@ -68,15 +65,40 @@ func (h *Handler) Refresh(c *gin.Context) {
 		return
 	}
 
-	td := model.TokenDetails{
-		AccessToken:  input.AccessToken,
-		RefreshToken: input.RefreshToken,
-	}
-	newTokenDetails, err := h.tr.Refresh(td)
+	td, err := decodeRefreshBody(input)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, newTokenDetails)
+	newtoken, err := h.tr.Refresh(td)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, encodeTokenBase64(newtoken))
+}
+
+func decodeRefreshBody(input RefreshBody) (model.TokenDetails, error) {
+	decodedAccessToken, err := base64.StdEncoding.DecodeString(input.AccessToken)
+	if err != nil {
+		return model.TokenDetails{}, err
+	}
+	decodedRefreshToken, err := base64.StdEncoding.DecodeString(input.RefreshToken)
+	if err != nil {
+		return model.TokenDetails{}, err
+	}
+
+	return model.TokenDetails{
+		AccessToken:  string(decodedAccessToken),
+		RefreshToken: string(decodedRefreshToken),
+	}, nil
+}
+
+func encodeTokenBase64(td model.TokenDetails) model.TokenDetails {
+	return model.TokenDetails{
+		AccessToken:  base64.RawStdEncoding.EncodeToString([]byte(td.AccessToken)),
+		RefreshToken: base64.RawStdEncoding.EncodeToString([]byte(td.RefreshToken)),
+	}
 }
