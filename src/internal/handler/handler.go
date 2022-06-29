@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"net/http"
 
 	"github.com/adiletelf/jwt-auth-go/internal/model"
@@ -23,13 +24,7 @@ type GenerateQuery struct {
 }
 
 func (h *Handler) Generate(c *gin.Context) {
-	var input GenerateQuery
-	if err := c.ShouldBindQuery(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	id, err := uuid.Parse(input.UUID)
+	id, err := parseUUID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -42,6 +37,25 @@ func (h *Handler) Generate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tokenDetails)
+}
+
+func parseUUID(c *gin.Context) (uuid.UUID, error) {
+	var input GenerateQuery
+	if err := c.ShouldBindQuery(&input); err != nil {
+		return uuid.Nil, err
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(input.UUID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	id, err := uuid.Parse(string(decoded))
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return id, nil
 }
 
 type RefreshBody struct {

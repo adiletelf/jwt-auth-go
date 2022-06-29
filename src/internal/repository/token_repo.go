@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	// "encoding/base64"
 	"fmt"
 	"strconv"
 	"time"
@@ -45,6 +46,8 @@ func (tr *TokenRepoImpl) Generate(uuid uuid.UUID) (model.TokenDetails, error) {
 	}
 
 	return model.TokenDetails{
+		// AccessToken:  base64.StdEncoding.EncodeToString([]byte(accessToken)),
+		// RefreshToken: base64.StdEncoding.EncodeToString([]byte(refreshToken)),
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
@@ -92,7 +95,7 @@ func (tr *TokenRepoImpl) Save(uid uuid.UUID, refreshToken string) (string, error
 		return "", err
 	}
 	user := model.User{
-		UUID: uid,
+		UUID:         uid,
 		RefreshToken: hashedToken,
 	}
 	result, err := tr.collection.InsertOne(tr.ctx, user)

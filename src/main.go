@@ -2,13 +2,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/adiletelf/jwt-auth-go/internal/config"
 	"github.com/adiletelf/jwt-auth-go/internal/handler"
 	"github.com/adiletelf/jwt-auth-go/internal/repository"
 	"github.com/adiletelf/jwt-auth-go/internal/util"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func main() {
@@ -22,14 +27,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer collection.Database().Drop(ctx)
+	cleanup(collection)
+
 	tr := repository.NewTokenRepo(ctx, cfg, collection)
 	h := handler.New(tr)
-	println(h)
-
 	r := gin.Default()
+
 	configureRoutes(r, h)
 	r.Run(cfg.ListenAddress)
+}
+
+func cleanup(collection *mongo.Collection) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("Performing cleanup...")
+		err := collection.Database().Drop(context.TODO())
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}()
 }
 
 func configureRoutes(r *gin.Engine, h *handler.Handler) {
