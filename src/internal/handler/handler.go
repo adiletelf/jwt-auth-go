@@ -36,7 +36,10 @@ func (h *Handler) Generate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, tokenDetails)
+	c.JSON(http.StatusOK, gin.H{
+		"accessToken":  base64.StdEncoding.EncodeToString([]byte(tokenDetails.AccessToken)),
+		"refreshToken": base64.StdEncoding.EncodeToString([]byte(tokenDetails.RefreshToken)),
+	})
 }
 
 func parseUUID(c *gin.Context) (uuid.UUID, error) {
@@ -45,12 +48,7 @@ func parseUUID(c *gin.Context) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 
-	decoded, err := base64.StdEncoding.DecodeString(input.UUID)
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	id, err := uuid.Parse(string(decoded))
+	id, err := uuid.Parse(input.UUID)
 	if err != nil {
 		return uuid.Nil, err
 	}
