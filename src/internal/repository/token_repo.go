@@ -10,8 +10,10 @@ import (
 	"github.com/adiletelf/jwt-auth-go/internal/model"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,7 +41,7 @@ func (tr *TokenRepoImpl) Generate(uuid uuid.UUID) (model.TokenDetails, error) {
 		return model.TokenDetails{}, err
 	}
 
-	_, err = tr.Save(uuid, refreshToken)
+	_, err = tr.upsert(uuid, refreshToken)
 	if err != nil {
 		return model.TokenDetails{}, err
 	}
@@ -88,26 +90,26 @@ func generateRefreshToken(uuid uuid.UUID, cfg *config.Config) (string, error) {
 	return signedToken, err
 }
 
-func (tr *TokenRepoImpl) Save(uid uuid.UUID, refreshToken string) (string, error) {
+func (tr *TokenRepoImpl) upsert(uid uuid.UUID, refreshToken string) (string, error) {
 	hashedToken, err := hashPassword(refreshToken)
 	if err != nil {
 		return "", err
 	}
-	user := model.User{
-		UUID:         uid,
-		RefreshToken: hashedToken,
-	}
-	result, err := tr.collection.InsertOne(tr.ctx, user)
+
+	filter := bson.M{"_id": uid}
+	update := bson.M{"$set": bson.M{"refreshToken": hashedToken}}
+	opts := options.Update().SetUpsert(true)
+	result, err := tr.collection.UpdateOne(tr.ctx, filter, update, opts)
 	if err != nil {
 		return "", err
 	}
 
-	insertedId, ok := result.InsertedID.(primitive.Binary)
+	upsertedID, ok := result.UpsertedID.(primitive.Binary)
 	if !ok {
-		return "", fmt.Errorf("error while inserting: %v", user)
+		return "", fmt.Errorf("error while upserting user with uuid: %v", uid)
 	}
 
-	return string(insertedId.Data), nil
+	return string(upsertedID.Data), nil
 }
 
 func hashPassword(password string) (string, error) {
