@@ -88,11 +88,11 @@ func (tr *TokenRepoImpl) extractUUID(td model.TokenDetails) (uuid.UUID, error) {
 }
 
 func (tr *TokenRepoImpl) generateTokenDetails(uid uuid.UUID) (model.TokenDetails, error) {
-	accessToken, err := token.GenerateAccessToken(uid, tr.cfg)
+	accessToken, err := token.GenerateAccessToken(uid, tr.cfg.AccessTokenMinuteLifespan, tr.cfg.ApiSecret)
 	if err != nil {
 		return model.TokenDetails{}, err
 	}
-	refreshToken, err := token.GenerateRefreshToken(uid, tr.cfg)
+	refreshToken, err := token.GenerateRefreshToken(uid, tr.cfg.RefreshTokenHourLifespan, tr.cfg.ApiSecret)
 	if err != nil {
 		return model.TokenDetails{}, err
 	}

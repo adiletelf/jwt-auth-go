@@ -2,16 +2,17 @@ package token
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/adiletelf/jwt-auth-go/internal/config"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 )
 
-func GenerateAccessToken(uid uuid.UUID, cfg *config.Config) (string, error) {
-	tokenLifespan, err := strconv.Atoi(cfg.AccessTokenMinuteLifespan)
+func GenerateAccessToken(uid uuid.UUID, tokenMinuteLifespan, apiSecret string) (string, error) {
+	tokenLifespan, err := strconv.Atoi(tokenMinuteLifespan)
 	if err != nil {
 		return "", err
 	}
@@ -21,12 +22,12 @@ func GenerateAccessToken(uid uuid.UUID, cfg *config.Config) (string, error) {
 	claims["exp"] = time.Now().Add(time.Minute * time.Duration(tokenLifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
-	signedToken, err := token.SignedString([]byte(cfg.ApiSecret))
+	signedToken, err := token.SignedString([]byte(apiSecret))
 	return signedToken, err
 }
 
-func GenerateRefreshToken(uid uuid.UUID, cfg *config.Config) (string, error) {
-	tokenLifespan, err := strconv.Atoi(cfg.RefreshTokenHourLifespan)
+func GenerateRefreshToken(uid uuid.UUID, tokenHourLifespan, apiSecret string) (string, error) {
+	tokenLifespan, err := strconv.Atoi(tokenHourLifespan)
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +36,7 @@ func GenerateRefreshToken(uid uuid.UUID, cfg *config.Config) (string, error) {
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(tokenLifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
-	signedToken, err := token.SignedString([]byte(cfg.ApiSecret))
+	signedToken, err := token.SignedString([]byte(apiSecret))
 	return signedToken, err
 }
 
@@ -75,4 +76,31 @@ func TokenValid(token, secret string) error {
 	}
 
 	return nil
+}
+
+func RequestTokenValid(r *http.Request, tokenName, secret string) error {
+	token := extractToken(r, tokenName)
+	_, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func extractToken(r *http.Request, tokenName string) string {
+	token := r.URL.Query().Get(tokenName)
+	if token != "" {
+		return token
+	}
+	bearerToken := r.Header.Get("Authorization")
+	splitted := strings.Split(bearerToken, " ")
+	if len(splitted) == 2 {
+		return splitted[1]
+	}
+	return ""
 }
