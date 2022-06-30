@@ -10,14 +10,14 @@ import (
 	"github.com/google/uuid"
 )
 
-func GenerateAccessToken(uuid uuid.UUID, cfg *config.Config) (string, error) {
+func GenerateAccessToken(uid uuid.UUID, cfg *config.Config) (string, error) {
 	tokenLifespan, err := strconv.Atoi(cfg.AccessTokenMinuteLifespan)
 	if err != nil {
 		return "", err
 	}
 	claims := jwt.MapClaims{}
 	claims["authorized"] = true
-	claims["uuid"] = uuid
+	claims["uuid"] = uid
 	claims["exp"] = time.Now().Add(time.Minute * time.Duration(tokenLifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
@@ -25,13 +25,13 @@ func GenerateAccessToken(uuid uuid.UUID, cfg *config.Config) (string, error) {
 	return signedToken, err
 }
 
-func GenerateRefreshToken(uuid uuid.UUID, cfg *config.Config) (string, error) {
+func GenerateRefreshToken(uid uuid.UUID, cfg *config.Config) (string, error) {
 	tokenLifespan, err := strconv.Atoi(cfg.RefreshTokenHourLifespan)
 	if err != nil {
 		return "", err
 	}
 	claims := jwt.MapClaims{}
-	claims["uuid"] = uuid
+	claims["uuid"] = uid
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(tokenLifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
@@ -60,4 +60,19 @@ func ExtractUUIDFromToken(token, secret string) (string, error) {
 		return "", fmt.Errorf("the field 'uuid' is not found")
 	}
 	return uid.(string), nil
+}
+
+func TokenValid(token, secret string) error {
+	tokenJwt, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+
+	if err != nil || tokenJwt == nil {
+		return err
+	}
+
+	return nil
 }
