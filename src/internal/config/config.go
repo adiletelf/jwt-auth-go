@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/spf13/viper"
 )
 
@@ -27,6 +29,7 @@ func New() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	err := viper.ReadInConfig()
 	if err != nil {

@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  database:
+    image: mongo
+    container_name: mongodb
+    environment:
+      - PUID=1000
+      - PGID=1000
+    ports:
+      - 27017:27017
+    restart: unless-stopped
+
+  myapp:
+    build: ./src
+    image: adiletelf/jwt-auth-go
+    container_name: myapp
+    ports:
+      - 8080:8080
+    environment:
+      DB_CONNECTIONSTRING: "mongodb://mongodb:27017"
+    depends_on:
+      - database
+    restart: always
