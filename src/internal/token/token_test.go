@@ -86,7 +86,7 @@ func TestExtractUUIDFromToken(t *testing.T) {
 
 func Test_extractToken(t *testing.T) {
 	accessToken, _ := GenerateAccessToken(uuid.New(), "15", "testsecret42")
-	req, _ := http.NewRequest("GET", "/generate", nil)
+	req, _ := http.NewRequest("POST", "/generate", nil)
 	q := req.URL.Query()
 	queryName := "accessToken"
 	q.Add(queryName, accessToken)

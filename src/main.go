@@ -54,8 +54,8 @@ func cleanup(collection *mongo.Collection) {
 }
 
 func configureRoutes(r *gin.Engine, h *handler.Handler) {
-	r.GET("/generate", h.Generate)
-	r.GET("/refresh", h.Refresh)
+	r.POST("/generate", h.Generate)
+	r.POST("/refresh", h.Refresh)
 
 	// can't access without accessToken
 	protected := r.Group("/api")

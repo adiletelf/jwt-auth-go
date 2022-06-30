@@ -25,8 +25,8 @@ func TestMain(m *testing.M) {
 		tr: &TokenRepoStub{},
 	}
 
-	router.GET(generatePath, h.Generate)
-	router.GET(refreshPath, h.Refresh)
+	router.POST(generatePath, h.Generate)
+	router.POST(refreshPath, h.Refresh)
 	m.Run()
 }
 
@@ -53,7 +53,7 @@ func TestNew(t *testing.T) {
 
 func TestHandler_Generate(t *testing.T) {
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", generatePath, nil)
+	req, _ := http.NewRequest("POST", generatePath, nil)
 	q := req.URL.Query()
 	q.Add("uuid", uuid.New().String())
 	req.URL.RawQuery = q.Encode()
