@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (tr *TokenRepoImpl) Refresh(td model.TokenDetails) (model.TokenDetails, error) {
@@ -70,9 +69,4 @@ func (tr *TokenRepoImpl) upsert(uid uuid.UUID, refreshToken string) error {
 		return fmt.Errorf("error while upserting document with id: %v", uid)
 	}
 	return nil
-}
-
-func hashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(hashedPassword), err
 }
