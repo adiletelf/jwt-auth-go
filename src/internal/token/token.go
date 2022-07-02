@@ -7,11 +7,28 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adiletelf/jwt-auth-go/internal/model"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 )
 
-func GenerateAccessToken(uid uuid.UUID, tokenMinuteLifespan, apiSecret string) (string, error) {
+func GenerateTokenDetails(uid uuid.UUID, secret, accessTokenMinuteLifespan, refreshTokenHourLifespan string) (model.TokenDetails, error) {
+	accessToken, err := GenerateAccessToken(uid, secret, accessTokenMinuteLifespan)
+	if err != nil {
+		return model.TokenDetails{}, err
+	}
+	refreshToken, err := GenerateRefreshToken(uid, secret, refreshTokenHourLifespan)
+	if err != nil {
+		return model.TokenDetails{}, err
+	}
+
+	return model.TokenDetails{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+func GenerateAccessToken(uid uuid.UUID, secret, tokenMinuteLifespan string) (string, error) {
 	tokenLifespan, err := strconv.Atoi(tokenMinuteLifespan)
 	if err != nil {
 		return "", err
@@ -22,11 +39,11 @@ func GenerateAccessToken(uid uuid.UUID, tokenMinuteLifespan, apiSecret string) (
 	claims["exp"] = time.Now().Add(time.Minute * time.Duration(tokenLifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
-	signedToken, err := token.SignedString([]byte(apiSecret))
+	signedToken, err := token.SignedString([]byte(secret))
 	return signedToken, err
 }
 
-func GenerateRefreshToken(uid uuid.UUID, tokenHourLifespan, apiSecret string) (string, error) {
+func GenerateRefreshToken(uid uuid.UUID, secret, tokenHourLifespan string) (string, error) {
 	tokenLifespan, err := strconv.Atoi(tokenHourLifespan)
 	if err != nil {
 		return "", err
@@ -36,7 +53,7 @@ func GenerateRefreshToken(uid uuid.UUID, tokenHourLifespan, apiSecret string) (s
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(tokenLifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
-	signedToken, err := token.SignedString([]byte(apiSecret))
+	signedToken, err := token.SignedString([]byte(secret))
 	return signedToken, err
 }
 

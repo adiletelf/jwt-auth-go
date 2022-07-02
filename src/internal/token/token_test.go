@@ -79,20 +79,39 @@ func TestExtractUUIDFromToken(t *testing.T) {
 		}
 
 		if accessUUID != refreshUUID {
-			t.Error("uuid of access, refresh tokens don't match")
+			t.Error("uuid of access, refresh tokens doesn't match")
 		}
 	}
 }
 
-func Test_extractToken(t *testing.T) {
-	accessToken, _ := GenerateAccessToken(uuid.New(), "15", "testsecret42")
+
+func TestRequestTokenValid(t *testing.T) {
+	tokenName := "accessToken"
+	secret := "testsecret42"
+	accessToken, _ := GenerateAccessToken(uuid.New(), "15", secret)
+
 	req, _ := http.NewRequest("POST", "/generate", nil)
 	q := req.URL.Query()
-	queryName := "accessToken"
-	q.Add(queryName, accessToken)
+	q.Add(tokenName, accessToken)
 	req.URL.RawQuery = q.Encode()
 
-	token := extractToken(req, queryName)
+	err := RequestTokenValid(req, tokenName, secret)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func Test_extractToken(t *testing.T) {
+	tokenName := "accessToken"
+	secret := "testsecret42"
+	accessToken, _ := GenerateAccessToken(uuid.New(), "15", secret)
+
+	req, _ := http.NewRequest("POST", "/generate", nil)
+	q := req.URL.Query()
+	q.Add(tokenName, accessToken)
+	req.URL.RawQuery = q.Encode()
+
+	token := extractToken(req, tokenName)
 	if token == "" {
 		t.Error("couldn't extract token from request")
 	}
