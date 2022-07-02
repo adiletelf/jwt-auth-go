@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenerateAccessToken(t *testing.T) {
-	apiSecret := "testsecret42"
+	secret := "testsecret42"
 	tokenMinuteLifespan := "15"
 	testcases := []struct {
 		uid uuid.UUID
@@ -19,11 +19,11 @@ func TestGenerateAccessToken(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		token, err := GenerateAccessToken(tc.uid, tokenMinuteLifespan, apiSecret)
+		token, err := GenerateAccessToken(tc.uid, secret, tokenMinuteLifespan)
 		if err != nil {
 			t.Error(err)
 		}
-		if err = TokenValid(token, apiSecret); err != nil {
+		if err = TokenValid(token, secret); err != nil {
 			t.Error(err)
 		}
 	}
@@ -31,7 +31,7 @@ func TestGenerateAccessToken(t *testing.T) {
 }
 
 func TestGenerateRefreshToken(t *testing.T) {
-	apiSecret := "testsecret42"
+	secret := "testsecret42"
 	tokenHourLifespan := "24"
 
 	testcases := []struct {
@@ -43,11 +43,11 @@ func TestGenerateRefreshToken(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		token, err := GenerateRefreshToken(tc.uid, tokenHourLifespan, apiSecret)
+		token, err := GenerateRefreshToken(tc.uid, secret, tokenHourLifespan)
 		if err != nil {
 			t.Error(err)
 		}
-		if err = TokenValid(token, apiSecret); err != nil {
+		if err = TokenValid(token, secret); err != nil {
 			t.Error(err)
 		}
 	}
@@ -56,7 +56,7 @@ func TestGenerateRefreshToken(t *testing.T) {
 func TestExtractUUIDFromToken(t *testing.T) {
 	accessMinuteLifespan := "15"
 	refreshHourLifespan := "24"
-	apiSecret := "testsecret42"
+	secret := "testsecret42"
 	testcases := []struct {
 		uid uuid.UUID
 	}{
@@ -65,15 +65,15 @@ func TestExtractUUIDFromToken(t *testing.T) {
 		{uuid.New()},
 	}
 	for _, tc := range testcases {
-		accessToken, _ := GenerateAccessToken(tc.uid, accessMinuteLifespan, apiSecret)
-		refreshToken, _ := GenerateRefreshToken(tc.uid, refreshHourLifespan, apiSecret)
+		accessToken, _ := GenerateAccessToken(tc.uid, secret, accessMinuteLifespan)
+		refreshToken, _ := GenerateRefreshToken(tc.uid, secret, refreshHourLifespan)
 
-		accessUUID, err := ExtractUUIDFromToken(accessToken, apiSecret)
+		accessUUID, err := ExtractUUIDFromToken(accessToken, secret)
 		if err != nil {
 			t.Error(err)
 		}
 
-		refreshUUID, err := ExtractUUIDFromToken(refreshToken, apiSecret)
+		refreshUUID, err := ExtractUUIDFromToken(refreshToken, secret)
 		if err != nil {
 			t.Error(err)
 		}
@@ -88,7 +88,7 @@ func TestExtractUUIDFromToken(t *testing.T) {
 func TestRequestTokenValid(t *testing.T) {
 	tokenName := "accessToken"
 	secret := "testsecret42"
-	accessToken, _ := GenerateAccessToken(uuid.New(), "15", secret)
+	accessToken, _ := GenerateAccessToken(uuid.New(), secret, "15")
 
 	req, _ := http.NewRequest("POST", "/generate", nil)
 	q := req.URL.Query()
@@ -104,7 +104,7 @@ func TestRequestTokenValid(t *testing.T) {
 func Test_extractToken(t *testing.T) {
 	tokenName := "accessToken"
 	secret := "testsecret42"
-	accessToken, _ := GenerateAccessToken(uuid.New(), "15", secret)
+	accessToken, _ := GenerateAccessToken(uuid.New(), secret, "15")
 
 	req, _ := http.NewRequest("POST", "/generate", nil)
 	q := req.URL.Query()
